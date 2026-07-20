@@ -51,7 +51,7 @@ ORDER BY column1 DESC;                       -- DESC for descending, ASC for asc
 -- _ represents exactly one character
 SELECT * FROM employees WHERE first_name LIKE 'M%k';   -- Starts with M, ends with k
 SELECT * FROM employees WHERE last_name LIKE '%son';   -- Ends with son
-SELECT * FROM employees WHERE job_id LIKE 'SA\_%' ESCAPE '\'; -- Escaping the wildcard '_'
+SELECT * FROM employees WHERE job_id LIKE 'SA\_%' ESCAPE '\'; -- Escaping the wildcard '_
 
 
 
