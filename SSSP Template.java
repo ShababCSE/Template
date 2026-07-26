@@ -513,3 +513,142 @@ public class TiredOfFlights {
 
 
 
+
+
+
+
+
+
+import java.util.*;
+
+public class TwoCouponsFlight {
+
+    /*
+     * OBJECTIVE: Find cheapest path from city 1 to n using at most 2 discount coupons.
+     * 
+     * GIVEN: 
+     * - n airports, m unidirectional flights (a -> b with cost c).
+     * - Cannot use two coupons on the same flight.
+     */
+
+    // Helper class to store a flight's destination and regular ticket price
+    static class Flight {
+        int destination;
+        long cost;
+
+        public Flight(int destination, long cost) {
+            this.destination = destination;
+            this.cost = cost;
+        }
+    }
+
+    // Helper class to track our journey's current status
+    static class TravelState implements Comparable<TravelState> {
+        int city;
+        long totalSpent;
+        int couponsUsed; // Can be 0, 1, or 2
+
+        public TravelState(int city, long totalSpent, int couponsUsed) {
+            this.city = city;
+            this.totalSpent = totalSpent;
+            this.couponsUsed = couponsUsed;
+        }
+
+        // Priority Queue Rule: Always process the cheapest accumulated cost first
+        @Override
+        public int compareTo(TravelState other) {
+            return Long.compare(this.totalSpent, other.totalSpent);
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        if (!scanner.hasNextInt()) return;
+
+        int n = scanner.nextInt();
+        int m = scanner.nextInt();
+
+        // 1. Build the flight network
+        List<List<Flight>> network = new ArrayList<>();
+        for (int i = 0; i <= n; i++) {
+            network.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < m; i++) {
+            int a = scanner.nextInt();
+            int b = scanner.nextInt();
+            long c = scanner.nextLong();
+            network.get(a).add(new Flight(b, c));
+        }
+
+        // 2. The 2D Array to track minimum costs (Our "Three-Story Building")
+        // minCost[0][city] = cheapest cost with 0 coupons used
+        // minCost[1][city] = cheapest cost with 1 coupon used
+        // minCost[2][city] = cheapest cost with 2 coupons used
+        long[][] minCost = new long[3][n + 1];
+        
+        // Fill all states with "Infinity" initially
+        for (int i = 0; i < 3; i++) {
+            Arrays.fill(minCost[i], Long.MAX_VALUE);
+        }
+
+        // 3. Setup Priority Queue
+        PriorityQueue<TravelState> pq = new PriorityQueue<>();
+
+        // Start at city 1, spent 0 money, and used 0 coupons
+        minCost[0][1] = 0;
+        pq.add(new TravelState(1, 0, 0));
+
+        // 4. Run State-Space Dijkstra
+        while (!pq.isEmpty()) {
+            TravelState current = pq.poll();
+
+            // SUCCESS CONDITION:
+            // Since the Priority Queue always serves the lowest total cost first,
+            // the absolute first time we pull our destination city (n) from the queue,
+            // it is mathematically guaranteed to be the cheapest possible route!
+            if (current.city == n) {
+                System.out.println(current.totalSpent);
+                scanner.close();
+                return; // Stop the program, we found the answer!
+            }
+
+            // If we found a cheaper way to reach this exact city in this exact coupon state
+            // earlier, skip this outdated, more expensive path.
+            if (current.totalSpent > minCost[current.couponsUsed][current.city]) {
+                continue;
+            }
+
+            // Look at all flights leaving our current city
+            for (Flight flight : network.get(current.city)) {
+                
+                // Option 1: Take the flight normally (Do NOT use a coupon)
+                long normalCost = current.totalSpent + flight.cost;
+                if (normalCost < minCost[current.couponsUsed][flight.destination]) {
+                    minCost[current.couponsUsed][flight.destination] = normalCost;
+                    
+                    // We stay in the exact same coupon state we are currently in
+                    pq.add(new TravelState(flight.destination, normalCost, current.couponsUsed));
+                }
+
+                // Option 2: Take the flight AND use a coupon
+                // We can ONLY do this if we haven't maxed out our 2 coupons yet
+                if (current.couponsUsed < 2) {
+                    long discountedCost = current.totalSpent + (flight.cost / 2); // Halve the cost
+                    int newCouponState = current.couponsUsed + 1; // Increment coupons used
+                    
+                    if (discountedCost < minCost[newCouponState][flight.destination]) {
+                        minCost[newCouponState][flight.destination] = discountedCost;
+                        
+                        // Add the new state to the queue
+                        pq.add(new TravelState(flight.destination, discountedCost, newCouponState));
+                    }
+                }
+            }
+        }
+
+        scanner.close();
+    }
+}
+
+
