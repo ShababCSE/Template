@@ -281,33 +281,27 @@ Display the employee_id, full name, salary, department_name, and job_title[cite:
 Exclude departments that have fewer than two employees[cite: 5]. Sort the results by
 department_name in ascending order and salary in descending order[cite: 5].
 */
-WITH ValidDepartments AS (
-    SELECT department_id
-    FROM employees
-    GROUP BY department_id
-    HAVING COUNT(employee_id) >= 2
-),
-RankedSalaries AS (
-    SELECT e.employee_id, 
-           e.first_name || ' ' || e.last_name AS full_name, 
-           e.salary, 
-           e.department_id, 
-           e.job_id,
-           DENSE_RANK() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC) as salary_rank
-    FROM employees e
-    WHERE e.department_id IN (SELECT department_id FROM ValidDepartments)
-)
-SELECT r.employee_id, 
-       r.full_name, 
-       r.salary, 
+SELECT e.employee_id, 
+       e.first_name || ' ' || e.last_name AS full_name, 
+       e.salary, 
        d.department_name, 
        j.job_title
-FROM RankedSalaries r
-JOIN departments d ON r.department_id = d.department_id
-JOIN jobs j ON r.job_id = j.job_id
-WHERE r.salary_rank = 2
-ORDER BY d.department_name ASC, r.salary DESC;
-
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+JOIN jobs j ON e.job_id = j.job_id
+WHERE e.salary = (
+    -- Step 2: Find the highest salary that is LESS than the absolute max
+    SELECT MAX(e2.salary)
+    FROM employees e2
+    WHERE e2.department_id = e.department_id
+      AND e2.salary < (
+          -- Step 1: Find the absolute max salary for this department
+          SELECT MAX(e3.salary) 
+          FROM employees e3 
+          WHERE e3.department_id = e.department_id
+      )
+)
+ORDER BY d.department_name ASC, e.salary DESC;
 /*
 (3) Find those employees whose salary is higher than the average salary of the
 department he/she works in[cite: 5]. Print employee last name, salary, and department
